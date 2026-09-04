@@ -1,9 +1,20 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+import Home from './pages/Home';
+import Search from './pages/Search';
+import Product from './pages/Product';
+import Compare from './pages/Compare';
+
 function App() {
   return (
-    <div>
-      <h1>ShopMesh</h1>
-      <p>One search. Every store.</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/product/:id" element={<Product />} />
+        <Route path="/compare" element={<Compare />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
