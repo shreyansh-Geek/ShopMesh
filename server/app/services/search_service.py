@@ -1,6 +1,6 @@
 from app.schemas.search import SearchFilters
 from app.connectors.registry import store_registry
-
+import asyncio
 
 def calculate_relevance_score(
     product: dict,
@@ -38,7 +38,23 @@ def calculate_relevance_score(
 
     return score
 
-
+async def search_store(
+    connector,
+    query: str,
+    filters: SearchFilters | None = None,
+) -> list[dict]:
+    try:
+        return await connector.search(
+            query=query,
+            filters=filters,
+        )
+    except Exception as exc:
+        print(
+            f"Store search failed: "
+            f"{connector.store_name} - {exc}"
+        )
+        return []
+    
 async def search_products(
     query: str,
     filters: SearchFilters | None = None,
@@ -46,18 +62,27 @@ async def search_products(
 ) -> list[dict]:
 
     # --------------------------------
-    # Get products from all stores
+    # Search all stores concurrently
     # --------------------------------
 
-    products = []
+    connectors = store_registry.get_all()
 
-    for connector in store_registry.get_all():
-        store_products = await connector.search(
+    store_results = await asyncio.gather(
+    *[
+        search_store(
+            connector=connector,
             query=query,
             filters=filters,
         )
+        for connector in connectors
+    ]
+)
 
-        products.extend(store_products)
+    products = [
+        product
+        for store_products in store_results
+        for product in store_products
+    ]
 
     # --------------------------------
     # Search

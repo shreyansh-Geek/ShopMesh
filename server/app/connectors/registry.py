@@ -1,5 +1,8 @@
 from app.connectors.base import StoreConnector
-from app.connectors.mock_store import MockStoreConnector
+
+from app.connectors.mock_amazon import MockAmazonConnector
+from app.connectors.mock_myntra import MockMyntraConnector
+from app.connectors.mock_flipkart import MockFlipkartConnector
 
 
 class StoreRegistry:
@@ -20,5 +23,13 @@ class StoreRegistry:
 store_registry = StoreRegistry()
 
 store_registry.register(
-    MockStoreConnector()
+    MockAmazonConnector()
+)
+
+store_registry.register(
+    MockMyntraConnector()
+)
+
+store_registry.register(
+    MockFlipkartConnector()
 )
