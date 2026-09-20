@@ -12,8 +12,9 @@ router = APIRouter(
 
 @router.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
-    products = search_products(
-        query=request.query, 
+
+    products = await search_products(
+        query=request.query,
         filters=request.filters,
         sort_by=request.sort_by,
     )

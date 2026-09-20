@@ -1,5 +1,5 @@
 from app.schemas.search import SearchFilters
-from app.services.product_repository import PRODUCTS
+from app.connectors.registry import store_registry
 
 
 def calculate_relevance_score(
@@ -38,14 +38,32 @@ def calculate_relevance_score(
 
     return score
 
-def search_products(
+
+async def search_products(
     query: str,
     filters: SearchFilters | None = None,
     sort_by: str = "relevance",
 ) -> list[dict]:
 
+    # --------------------------------
+    # Get products from all stores
+    # --------------------------------
+
+    products = []
+
+    for connector in store_registry.get_all():
+        store_products = await connector.search(
+            query=query,
+            filters=filters,
+        )
+
+        products.extend(store_products)
+
+    # --------------------------------
+    # Search
+    # --------------------------------
+
     query_lower = query.lower().strip()
-    results = []
 
     query_words = [
         word
@@ -53,7 +71,9 @@ def search_products(
         if len(word) > 2
     ]
 
-    for product in PRODUCTS:
+    results = []
+
+    for product in products:
 
         searchable_text = " ".join(
             [
@@ -64,37 +84,37 @@ def search_products(
             ]
         ).lower()
 
-        # -------------------------
         # Text search
-        # -------------------------
-
         if query_words and not all(
             word in searchable_text
             for word in query_words
         ):
             continue
 
-        # -------------------------
+        # --------------------------------
         # Filters
-        # -------------------------
+        # --------------------------------
 
         if filters:
 
             if (
                 filters.brand
-                and product["brand"].lower() != filters.brand.lower()
+                and product["brand"].lower()
+                != filters.brand.lower()
             ):
                 continue
 
             if (
                 filters.store_id
-                and product["store_id"].lower() != filters.store_id.lower()
+                and product["store_id"].lower()
+                != filters.store_id.lower()
             ):
                 continue
 
             if (
                 filters.category
-                and product["category"].lower() != filters.category.lower()
+                and product["category"].lower()
+                != filters.category.lower()
             ):
                 continue
 
@@ -112,42 +132,47 @@ def search_products(
 
             if (
                 filters.min_rating is not None
-                and product["rating"] < filters.min_rating
+                and (
+                    product["rating"] is None
+                    or product["rating"] < filters.min_rating
+                )
             ):
                 continue
 
         results.append(product)
 
-    # -------------------------
+    # --------------------------------
     # Sorting
-    # -------------------------
+    # --------------------------------
 
     if sort_by == "price_low_to_high":
+
         results.sort(
             key=lambda product: product["price"]
         )
 
     elif sort_by == "price_high_to_low":
+
         results.sort(
             key=lambda product: product["price"],
             reverse=True,
         )
 
     elif sort_by == "rating":
+
         results.sort(
-            key=lambda product: product["rating"],
+            key=lambda product: product["rating"] or 0,
             reverse=True,
         )
 
-    # Default:
-    # relevance → preserve current search order
     elif sort_by == "relevance":
+
         results.sort(
-        key=lambda product: calculate_relevance_score(
-            product,
-            query,
-        ),
-        reverse=True,
-    )
+            key=lambda product: calculate_relevance_score(
+                product,
+                query,
+            ),
+            reverse=True,
+        )
 
     return results
