@@ -17,6 +17,7 @@ async def search(request: SearchRequest):
     query=request.query,
     filters=request.filters,
     sort_by=request.sort_by,
+    stores=request.stores,
 )
 
     return SearchResponse(

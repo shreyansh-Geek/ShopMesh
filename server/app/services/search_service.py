@@ -63,13 +63,21 @@ async def search_products(
     query: str,
     filters: SearchFilters | None = None,
     sort_by: str = "relevance",
+    stores: list[str] | None = None,
 ) -> list[dict]:
 
     # --------------------------------
     # Search all stores concurrently
     # --------------------------------
 
-    connectors = store_registry.get_all()
+    if stores:
+        connectors = [
+            connector
+            for connector in store_registry.get_all()
+            if connector.store_id in stores
+        ]
+    else:
+        connectors = store_registry.get_all()
 
     store_results = await asyncio.gather(
     *[

@@ -24,6 +24,7 @@ class SearchRequest(BaseModel):
 
     filters: SearchFilters | None = None
     sort_by: str = "relevance"
+    stores: list[str] | None = None
 
 
 class SearchProduct(BaseModel):
