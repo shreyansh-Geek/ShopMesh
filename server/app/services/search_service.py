@@ -42,18 +42,22 @@ async def search_store(
     connector,
     query: str,
     filters: SearchFilters | None = None,
-) -> list[dict]:
+) -> tuple[bool, list[dict]]:
     try:
-        return await connector.search(
+        products = await connector.search(
             query=query,
             filters=filters,
         )
+
+        return True, products
+
     except Exception as exc:
         print(
             f"Store search failed: "
             f"{connector.store_name} - {exc}"
         )
-        return []
+
+        return False, []
     
 async def search_products(
     query: str,
@@ -78,11 +82,34 @@ async def search_products(
     ]
 )
 
+    # --------------------------------
+    # Process store results
+    # --------------------------------
+
+    successful_results = [
+        products
+        for success, products in store_results
+        if success
+    ]
+
+    stores_succeeded = sum(
+        1
+        for success, _ in store_results
+        if success
+    )
+
+    stores_failed = sum(
+        1
+        for success, _ in store_results
+        if not success
+    )
+
     products = [
         product
-        for store_products in store_results
+        for store_products in successful_results
         for product in store_products
     ]
+
 
     # --------------------------------
     # Search
@@ -200,4 +227,9 @@ async def search_products(
             reverse=True,
         )
 
-    return results
+    return {
+        "products": results,
+        "stores_searched": len(connectors),
+        "stores_succeeded": stores_succeeded,
+        "stores_failed": stores_failed,
+    }

@@ -52,3 +52,7 @@ class SearchResponse(BaseModel):
     query: str
     products: list[SearchProduct]
     total: int
+
+    stores_searched: int
+    stores_succeeded: int
+    stores_failed: int
