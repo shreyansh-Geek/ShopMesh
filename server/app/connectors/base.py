@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from app.schemas.product import Product
 from app.schemas.search import SearchFilters
 
 
@@ -20,5 +21,5 @@ class StoreConnector(ABC):
         self,
         query: str,
         filters: SearchFilters | None = None,
-    ) -> list[dict]:
+    ) -> list[Product]:
         pass
