@@ -1,10 +1,13 @@
 from app.connectors.base import StoreConnector
 from app.schemas.product import Product
 from app.schemas.search import SearchFilters
-from app.services.product_repository import PRODUCTS
+from app.sources.mock_flipkart_source import MockFlipkartSource
 
 
 class MockFlipkartConnector(StoreConnector):
+
+    def __init__(self):
+        self.source = MockFlipkartSource()
 
     @property
     def store_id(self) -> str:
@@ -20,11 +23,7 @@ class MockFlipkartConnector(StoreConnector):
         filters: SearchFilters | None = None,
     ) -> list[Product]:
 
-        products = [
-            product
-            for product in PRODUCTS
-            if product["store_id"] == "flipkart"
-        ]
+        products = self.source.get_products()
 
         return [
             Product.model_validate(product)

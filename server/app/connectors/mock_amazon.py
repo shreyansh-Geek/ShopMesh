@@ -1,10 +1,13 @@
 from app.connectors.base import StoreConnector
 from app.schemas.product import Product
 from app.schemas.search import SearchFilters
-from app.services.product_repository import PRODUCTS
+from app.sources.mock_amazon_source import MockAmazonSource
 
 
 class MockAmazonConnector(StoreConnector):
+
+    def __init__(self):
+        self.source = MockAmazonSource()
 
     @property
     def store_id(self) -> str:
@@ -20,11 +23,7 @@ class MockAmazonConnector(StoreConnector):
         filters: SearchFilters | None = None,
     ) -> list[Product]:
 
-        products = [
-            product
-            for product in PRODUCTS
-            if product["store_id"] == "amazon"
-        ]
+        products = self.source.get_products()
 
         return [
             Product.model_validate(product)
