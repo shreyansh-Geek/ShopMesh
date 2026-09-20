@@ -1,17 +1,20 @@
-from app.schemas.search import SearchFilters
-from app.connectors.registry import store_registry
 import asyncio
 
+from app.connectors.registry import store_registry
+from app.schemas.search import SearchFilters
+from app.schemas.product import Product
+
+
 def calculate_relevance_score(
-    product: dict,
+    product: Product,
     query: str,
 ) -> int:
     query_lower = query.lower().strip()
 
-    title = product["title"].lower()
-    brand = product["brand"].lower()
-    category = product["category"].lower()
-    store_name = product["store_name"].lower()
+    title = product.title.lower()
+    brand = product.brand.lower()
+    category = product.category.lower()
+    store_name = product.store_name.lower()
 
     score = 0
 
@@ -38,11 +41,12 @@ def calculate_relevance_score(
 
     return score
 
+
 async def search_store(
     connector,
     query: str,
     filters: SearchFilters | None = None,
-) -> tuple[bool, list[dict]]:
+) -> tuple[bool, list[Product]]:
     try:
         products = await connector.search(
             query=query,
@@ -58,14 +62,14 @@ async def search_store(
         )
 
         return False, []
-    
+
+
 async def search_products(
     query: str,
     filters: SearchFilters | None = None,
     sort_by: str = "relevance",
     stores: list[str] | None = None,
-) -> list[dict]:
-
+) -> dict:
     # --------------------------------
     # Search all stores concurrently
     # --------------------------------
@@ -80,15 +84,15 @@ async def search_products(
         connectors = store_registry.get_all()
 
     store_results = await asyncio.gather(
-    *[
-        search_store(
-            connector=connector,
-            query=query,
-            filters=filters,
-        )
-        for connector in connectors
-    ]
-)
+        *[
+            search_store(
+                connector=connector,
+                query=query,
+                filters=filters,
+            )
+            for connector in connectors
+        ]
+    )
 
     # --------------------------------
     # Process store results
@@ -118,7 +122,6 @@ async def search_products(
         for product in store_products
     ]
 
-
     # --------------------------------
     # Search
     # --------------------------------
@@ -131,20 +134,23 @@ async def search_products(
         if len(word) > 2
     ]
 
-    results = []
+    results: list[Product] = []
 
     for product in products:
 
         searchable_text = " ".join(
             [
-                product["title"],
-                product["brand"],
-                product["category"],
-                product["store_name"],
+                product.title,
+                product.brand,
+                product.category,
+                product.store_name,
             ]
         ).lower()
 
+        # --------------------------------
         # Text search
+        # --------------------------------
+
         if query_words and not all(
             word in searchable_text
             for word in query_words
@@ -157,44 +163,50 @@ async def search_products(
 
         if filters:
 
+            # Brand filter
             if (
                 filters.brand
-                and product["brand"].lower()
+                and product.brand.lower()
                 != filters.brand.lower()
             ):
                 continue
 
+            # Store filter
             if (
                 filters.store_id
-                and product["store_id"].lower()
+                and product.store_id.lower()
                 != filters.store_id.lower()
             ):
                 continue
 
+            # Category filter
             if (
                 filters.category
-                and product["category"].lower()
+                and product.category.lower()
                 != filters.category.lower()
             ):
                 continue
 
+            # Minimum price
             if (
                 filters.min_price is not None
-                and product["price"] < filters.min_price
+                and product.price < filters.min_price
             ):
                 continue
 
+            # Maximum price
             if (
                 filters.max_price is not None
-                and product["price"] > filters.max_price
+                and product.price > filters.max_price
             ):
                 continue
 
+            # Minimum rating
             if (
                 filters.min_rating is not None
                 and (
-                    product["rating"] is None
-                    or product["rating"] < filters.min_rating
+                    product.rating is None
+                    or product.rating < filters.min_rating
                 )
             ):
                 continue
@@ -208,20 +220,20 @@ async def search_products(
     if sort_by == "price_low_to_high":
 
         results.sort(
-            key=lambda product: product["price"]
+            key=lambda product: product.price
         )
 
     elif sort_by == "price_high_to_low":
 
         results.sort(
-            key=lambda product: product["price"],
+            key=lambda product: product.price,
             reverse=True,
         )
 
     elif sort_by == "rating":
 
         results.sort(
-            key=lambda product: product["rating"] or 0,
+            key=lambda product: product.rating or 0,
             reverse=True,
         )
 
@@ -234,6 +246,10 @@ async def search_products(
             ),
             reverse=True,
         )
+
+    # --------------------------------
+    # Return response
+    # --------------------------------
 
     return {
         "products": results,

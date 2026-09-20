@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-
+from app.schemas.product import Product
 
 class SearchFilters(BaseModel):
     brand: str | None = None
@@ -51,7 +51,7 @@ class SearchProduct(BaseModel):
 
 class SearchResponse(BaseModel):
     query: str
-    products: list[SearchProduct]
+    products: list[Product]
     total: int
 
     stores_searched: int
