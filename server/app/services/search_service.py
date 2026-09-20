@@ -2,6 +2,42 @@ from app.schemas.search import SearchFilters
 from app.services.product_repository import PRODUCTS
 
 
+def calculate_relevance_score(
+    product: dict,
+    query: str,
+) -> int:
+    query_lower = query.lower().strip()
+
+    title = product["title"].lower()
+    brand = product["brand"].lower()
+    category = product["category"].lower()
+    store_name = product["store_name"].lower()
+
+    score = 0
+
+    # Exact title match
+    if query_lower == title:
+        score += 10
+
+    # Query word matching
+    for word in query_lower.split():
+        if len(word) <= 2:
+            continue
+
+        if word in title:
+            score += 5
+
+        if word in brand:
+            score += 4
+
+        if word in category:
+            score += 3
+
+        if word in store_name:
+            score += 1
+
+    return score
+
 def search_products(
     query: str,
     filters: SearchFilters | None = None,
@@ -106,6 +142,12 @@ def search_products(
     # Default:
     # relevance → preserve current search order
     elif sort_by == "relevance":
-        pass
+        results.sort(
+        key=lambda product: calculate_relevance_score(
+            product,
+            query,
+        ),
+        reverse=True,
+    )
 
     return results
